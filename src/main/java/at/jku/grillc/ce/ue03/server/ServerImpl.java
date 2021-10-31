@@ -18,14 +18,10 @@ public class ServerImpl implements FactoryServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerImpl.class);
     private final Map<Integer, FactoryClient> clientsForBroadcast;
 
-
-
     public ServerImpl() throws RemoteException {
         UnicastRemoteObject.exportObject(this, 0);
         clientsForBroadcast = new HashMap<>();
     }
-
-
 
     @Override
     public String toUpperCase(final String str, final FactoryClient client) {
