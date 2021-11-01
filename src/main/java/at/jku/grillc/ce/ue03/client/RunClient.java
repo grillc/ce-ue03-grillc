@@ -1,5 +1,7 @@
 package at.jku.grillc.ce.ue03.client;
 
+import at.jku.grillc.ce.ue03.shared.InteractionHandler;
+import at.jku.grillc.ce.ue03.shared.MachineStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,47 +15,57 @@ public class RunClient {
 
     public static void main(String[] args) throws RemoteException, NotBoundException {
         final RMIClient client = new RMIClient();
-
         registrationProcess(client);
-        LOGGER.info("whatnow");
-        return;
+        runningStatus(client);
     }
 
     private static void registrationProcess(RMIClient client) {
-        final Scanner in = new Scanner(System.in);
-        boolean registrationSuccess = false;
-        Integer line = null;
-        while (!registrationSuccess) {
-            while (line == null) {
-
-                try {
-                    LOGGER.info("\nWillkommen am neuen Terminal!" +
-                            "\nWählen Sie eine Maschine:" +
-                            "\n" +
-                            "\n0 - Drehmaschine Mazák" +
-                            "\n1 - Fräsmaschine MCFV1060" +
-                            "\n2 - Fräsmaschine G. Master" +
-                            "\n3 - Fräsmaschine Huron" +
-                            "\n4 - Fräsmaschine DMG DMF260" +
-                            "\nIhre Wahl: ");
-                    line = in.nextInt();
-                    LOGGER.info(Integer.toString(line));
-                } catch (InputMismatchException ex) {
-                                        LOGGER.info("\n --- Unültige Eingabe. Bitte eine der o.g. Optionen wählen ---");
-                }
-                in.nextLine();
-            }
+        boolean registrationPending = true;
+        while (registrationPending) {
+            int userChoice = InteractionHandler.integerLogger(InteractionHandler.clientWelcome);
             try {
-                final String result = client.logClientInToServer(line);
+                final String result = client.logClientInToServer(userChoice);
                 LOGGER.info("{}\n", result);
                 if (result.contains("Erfolg:"))
-                    registrationSuccess = true;
-                else {
-                    line = null;
-                }
+                    registrationPending = false;
             } catch (final Exception e) {
                 LOGGER.error(e.getLocalizedMessage(), e);
             }
         }
     }
+
+    private static void runningStatus(RMIClient client) {
+        boolean running = true;
+        String orderNr="0";
+        String orderNrStatus = "checking...";
+        while(running){
+            try {
+
+                // print status, get an integer as status change decisions
+                InteractionHandler.logStatus(client);  // print status information
+                int userChoice = InteractionHandler.integerLogger(InteractionHandler.clientRunningMenu);
+
+                // getting order number if status should be production
+                if (userChoice == 0) {
+                    while (!orderNrStatus.equals("OK")) {
+                        orderNr = InteractionHandler.stringLogger("\nBitte Auftragsnummer eingeben");
+                        orderNrStatus = client.checkOrderNr(orderNr);
+                        LOGGER.info(orderNrStatus);
+                    }
+                }
+
+                // shut down server if chosen
+                if (userChoice == 9) {
+                    client.shutdownServer();
+                }
+
+                // execution of status update
+                LOGGER.info(client.updateStatus(userChoice, orderNr));
+
+            } catch (final Exception e) {
+                    LOGGER.error(e.getLocalizedMessage(), e);
+            }
+        }
+    }
+
 }

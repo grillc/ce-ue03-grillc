@@ -9,7 +9,7 @@ public enum Machine {
 
     private final int value;
 
-    Machine(int value) { this.value = value; }
+   Machine(int value) { this.value = value; }
 
     public int getValue() {
         return value;
